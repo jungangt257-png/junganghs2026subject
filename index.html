@@ -171,7 +171,7 @@
         </div>
     </div>
     
-    <!-- Subject Detail Modal (PDF.js Canvas Integration) -->
+    <!-- Subject Detail Modal (Hybrid PDF Viewer Integration) -->
     <div id="subject-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden transform transition-all scale-95 opacity-0" id="subject-modal-content">
             <!-- Header -->
@@ -186,19 +186,26 @@
             </div>
             
             <div class="bg-blue-50 py-2 px-4 text-center text-xs text-blue-800 border-b shrink-0 flex justify-between items-center">
-                <span>PDF 로딩이 지연될 경우 새 창에서 확인하세요.</span>
+                <span class="hidden md:inline">마우스로 스크롤하여 확대/축소 및 내용을 확인할 수 있습니다.</span>
+                <span class="inline md:hidden">PDF 로딩이 지연될 경우 새 창에서 확인하세요.</span>
                 <a id="pdf-fallback-link" href="교과별 과목 안내.pdf" target="_blank" class="px-3 py-1 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors">원본 PDF 열기</a>
             </div>
 
-            <!-- Body: PDF Viewer (Canvas) -->
-            <div class="flex-grow bg-gray-200 relative w-full h-full overflow-y-auto" id="pdf-container">
-                <!-- 로딩 스피너 -->
-                <div id="pdf-loading" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
-                    <i class="fas fa-spinner fa-spin text-4xl mb-3 text-blue-500"></i>
-                    <p class="text-sm font-medium text-gray-600">페이지를 불러오는 중입니다...</p>
+            <!-- Body: PDF Viewer (Hybrid: Canvas for Mobile, Iframe for PC) -->
+            <div class="flex-grow bg-gray-200 relative w-full h-full overflow-hidden" id="viewer-wrapper">
+                
+                <!-- [모바일용] PDF.js 컨테이너 -->
+                <div id="pdf-container" class="w-full h-full overflow-y-auto hidden">
+                    <div id="pdf-loading" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-4xl mb-3 text-blue-500"></i>
+                        <p class="text-sm font-medium text-gray-600">페이지를 불러오는 중입니다...</p>
+                    </div>
+                    <canvas id="pdf-canvas" class="mx-auto shadow-md hidden bg-white w-full" style="max-width: 800px; height: auto; display: block;"></canvas>
                 </div>
-                <!-- 렌더링 캔버스 -->
-                <canvas id="pdf-canvas" class="mx-auto shadow-md hidden bg-white w-full" style="max-width: 800px; height: auto; display: block;"></canvas>
+                
+                <!-- [PC용] 네이티브 iframe 뷰어 -->
+                <iframe id="pdf-iframe" class="w-full h-full absolute inset-0 hidden bg-white" src="" frameborder="0"></iframe>
+
             </div>
 
             <!-- Footer: Cart Actions -->
@@ -220,6 +227,9 @@
         // PDF.js 설정
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
         let pdfDoc = null;
+
+        // 접속 기기(모바일/태블릿) 감지
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile|CriOS/i.test(navigator.userAgent) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
 
         // Data structure mapped to 2022 Revised Curriculum
         const curriculumData = {
@@ -464,56 +474,18 @@
         let cart = new Set(); 
 
         const subjectCategoryMap = {
-            '문학과 영상': '진로',
-            '매체 의사소통': '융합',
-            '주제 탐구 독서': '진로',
-            '현대사회와 윤리': '일반',
-            '사회와 문화': '일반',
-            '철학': '교양',
-            '세계사': '일반',
-            '한국지리 탐구': '진로',
-            '동아시아 역사 기행': '진로',
-            '정치': '진로',
-            '법과 사회': '진로',
-            '경제': '진로',
-            '생명과학': '일반',
-            '확률과 통계': '일반',
-            '심리학': '교양',
-            '대수': '일반',
-            '미적분Ⅰ': '일반',
-            '미적분Ⅱ': '진로',
-            '경제수학': '진로',
-            '역사로 탐구하는 현대 세계': '융합',
-            '기하': '진로',
-            '인공지능 수학': '진로',
-            '물리학': '일반',
-            '역학과 에너지': '진로',
-            '전자기와 양자': '진로',
-            '화학': '일반',
-            '화학 반응의 세계': '진로',
-            '물질과 에너지': '진로',
-            '세포와 물질대사': '진로',
-            '생물의 유전과 진화': '진로',
-            '인공지능 기초': '진로',
-            '데이터 과학': '진로',
-            '교육학': '교양',
-            '세계 문화와 영어': '융합',
-            '영미 문학 읽기': '진로',
-            '심화 영어': '진로',
-            '사회문제 탐구': '융합',
-            '세계시민과 지리': '일반',
-            '도시의 미래 탐구': '진로',
-            '여행지리': '융합',
-            '지구과학': '일반',
-            '행성 우주 과학': '진로',
-            '지구시스템과학': '진로',
-            '미술': '일반',
-            '음악': '일반',
-            '체육': '일반',
-            '융합과학 탐구': '융합',
-            '기후변화와 지속가능한 세계': '융합',
-            '스포츠 생활': '일반',
-            '고전과 윤리': '진로'
+            '문학과 영상': '진로', '매체 의사소통': '융합', '주제 탐구 독서': '진로',
+            '현대사회와 윤리': '일반', '사회와 문화': '일반', '철학': '교양', '세계사': '일반',
+            '한국지리 탐구': '진로', '동아시아 역사 기행': '진로', '정치': '진로', '법과 사회': '진로', '경제': '진로',
+            '생명과학': '일반', '확률과 통계': '일반', '심리학': '교양', '대수': '일반', '미적분Ⅰ': '일반',
+            '미적분Ⅱ': '진로', '경제수학': '진로', '역사로 탐구하는 현대 세계': '융합', '기하': '진로', '인공지능 수학': '진로',
+            '물리학': '일반', '역학과 에너지': '진로', '전자기와 양자': '진로', '화학': '일반', '화학 반응의 세계': '진로',
+            '물질과 에너지': '진로', '세포와 물질대사': '진로', '생물의 유전과 진화': '진로', '인공지능 기초': '진로',
+            '데이터 과학': '진로', '교육학': '교양', '세계 문화와 영어': '융합', '영미 문학 읽기': '진로',
+            '심화 영어': '진로', '사회문제 탐구': '융합', '세계시민과 지리': '일반', '도시의 미래 탐구': '진로',
+            '여행지리': '융합', '지구과학': '일반', '행성 우주 과학': '진로', '지구시스템과학': '진로',
+            '미술': '일반', '음악': '일반', '체육': '일반', '융합과학 탐구': '융합', '기후변화와 지속가능한 세계': '융합',
+            '스포츠 생활': '일반', '고전과 윤리': '진로'
         };
 
         const subjectPageMap = {
@@ -663,22 +635,19 @@
             canvas.classList.add('hidden');
 
             try {
-                // PDF가 아직 로드되지 않았다면 로드 (최초 1회만 실행됨)
+                // 인코딩 처리: PC 로컬 및 특정 서버에서 한글 파일명을 인식하지 못하는 문제 해결
                 if (!pdfDoc) {
-                    // 동일 경로(GitHub 폴더)에 있는 PDF 파일 호출
-                    pdfDoc = await pdfjsLib.getDocument('교과별 과목 안내.pdf').promise;
+                    pdfDoc = await pdfjsLib.getDocument(encodeURI('교과별 과목 안내.pdf')).promise;
                 }
                 
                 const page = await pdfDoc.getPage(pageNum);
                 
-                // 컨테이너 크기에 맞춰 스케일 계산 (스마트폰 등 작은 화면 대응)
                 let containerWidth = container.clientWidth;
-                if (containerWidth === 0) containerWidth = window.innerWidth * 0.9; // 모달이 렌더링 전일 경우 대비
+                if (containerWidth === 0) containerWidth = window.innerWidth * 0.9;
 
                 const unscaledViewport = page.getViewport({ scale: 1.0 });
                 const scale = containerWidth / unscaledViewport.width;
                 
-                // 해상도를 위해 고품질 렌더링(scale * 1.5배) 진행하고, CSS로 화면에 맞게 축소 표시
                 const viewport = page.getViewport({ scale: scale * 1.5 });
                 
                 canvas.width = viewport.width;
@@ -693,7 +662,7 @@
                 
                 loadingEl.classList.add('hidden');
                 canvas.classList.remove('hidden');
-                container.scrollTop = 0; // 새 페이지 렌더링 시 최상단으로 스크롤 초기화
+                container.scrollTop = 0; 
                 
             } catch (error) {
                 console.error('PDF 렌더링 중 오류 발생:', error);
@@ -712,11 +681,22 @@
 
             title.textContent = subject;
             
-            // 페이지 번호 매핑 적용 후 PDF.js 캔버스 렌더링 호출
             const pageNum = subjectPageMap[subject] || 1; 
-            renderPDFPage(pageNum);
+            const pdfUrl = encodeURI('교과별 과목 안내.pdf') + `#page=${pageNum}`;
             
-            fallbackLink.href = `교과별 과목 안내.pdf#page=${pageNum}`;
+            fallbackLink.href = pdfUrl;
+            
+            // 하이브리드 분기 처리 (모바일은 Canvas, PC는 iframe)
+            if (isMobileDevice) {
+                document.getElementById('pdf-iframe').classList.add('hidden');
+                document.getElementById('pdf-container').classList.remove('hidden');
+                renderPDFPage(pageNum);
+            } else {
+                document.getElementById('pdf-container').classList.add('hidden');
+                const iframe = document.getElementById('pdf-iframe');
+                iframe.classList.remove('hidden');
+                iframe.src = pdfUrl;
+            }
             
             catBadge.textContent = category + (category === '교양' ? '' : '선택');
             if (category === '일반') catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-gray-200 text-gray-700';
@@ -769,9 +749,11 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
                 currentModalSubject = null;
-                // 모달 닫을 때 캔버스 초기화하여 잔상 제거
+                
+                // 모달 닫을 때 리소스 완전 초기화
+                document.getElementById('pdf-iframe').src = '';
                 const canvas = document.getElementById('pdf-canvas');
-                canvas.classList.add('hidden');
+                if (canvas) canvas.classList.add('hidden');
             }, 200);
         }
 
