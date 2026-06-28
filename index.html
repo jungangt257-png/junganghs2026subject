@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts: Noto Sans KR -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- PDF.js 라이브러리 추가 (모바일 페이지 이동 해결) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         body {
             font-family: 'Noto Sans KR', sans-serif;
@@ -27,7 +29,6 @@
             ring-offset: 2px;
             ring-blue-500;
         }
-        /* Hide scrollbar for clean horizontal scroll */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -170,7 +171,7 @@
         </div>
     </div>
     
-    <!-- Subject Detail Modal -->
+    <!-- Subject Detail Modal (PDF.js Canvas Integration) -->
     <div id="subject-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden transform transition-all scale-95 opacity-0" id="subject-modal-content">
             <!-- Header -->
@@ -184,16 +185,20 @@
                 </button>
             </div>
             
-            <!-- Mobile Fallback Notice -->
             <div class="bg-blue-50 py-2 px-4 text-center text-xs text-blue-800 border-b shrink-0 flex justify-between items-center">
-                <span>미리보기가 지원되지 않는 기기라면 새 창에서 확인하세요.</span>
+                <span>PDF 로딩이 지연될 경우 새 창에서 확인하세요.</span>
                 <a id="pdf-fallback-link" href="교과별 과목 안내.pdf" target="_blank" class="px-3 py-1 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors">원본 PDF 열기</a>
             </div>
 
-            <!-- Body: PDF Viewer -->
-            <div class="flex-grow bg-gray-200 relative w-full h-full">
-                <!-- PDF iframe embed -->
-                <iframe id="modal-pdf-viewer" class="w-full h-full absolute inset-0" src="" frameborder="0"></iframe>
+            <!-- Body: PDF Viewer (Canvas) -->
+            <div class="flex-grow bg-gray-200 relative w-full h-full overflow-y-auto" id="pdf-container">
+                <!-- 로딩 스피너 -->
+                <div id="pdf-loading" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-4xl mb-3 text-blue-500"></i>
+                    <p class="text-sm font-medium text-gray-600">페이지를 불러오는 중입니다...</p>
+                </div>
+                <!-- 렌더링 캔버스 -->
+                <canvas id="pdf-canvas" class="mx-auto shadow-md hidden bg-white w-full" style="max-width: 800px; height: auto; display: block;"></canvas>
             </div>
 
             <!-- Footer: Cart Actions -->
@@ -212,6 +217,10 @@
     </div>
 
     <script>
+        // PDF.js 설정
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        let pdfDoc = null;
+
         // Data structure mapped to 2022 Revised Curriculum
         const curriculumData = {
             humanities: {
@@ -452,9 +461,8 @@
 
         let selectedField = null;
         let selectedMajor = null;
-        let cart = new Set(); // Using Set to avoid duplicates
+        let cart = new Set(); 
 
-        // 2022 개정 교육과정 과목별 구분 매핑 (완전 업데이트)
         const subjectCategoryMap = {
             '문학과 영상': '진로',
             '매체 의사소통': '융합',
@@ -467,7 +475,7 @@
             '동아시아 역사 기행': '진로',
             '정치': '진로',
             '법과 사회': '진로',
-            '경제': '진로', // 2022개정에서 진로선택으로 변경됨
+            '경제': '진로',
             '생명과학': '일반',
             '확률과 통계': '일반',
             '심리학': '교양',
@@ -508,76 +516,22 @@
             '고전과 윤리': '진로'
         };
 
-        // 2022 개정 교육과정 교과별 과목 안내 PDF 페이지 매핑
-        // 💡 주의: PDF 목차를 기준으로 예상 페이지를 매핑했습니다. 실제 PDF를 열어보시고 페이지 번호(숫자)가 다르면 아래 숫자만 수정해 주시면 완벽하게 작동합니다.
         const subjectPageMap = {
-            // 국어 (62~)
-            '문학과 영상': 65,
-            '매체 의사소통': 66,
-            '주제 탐구 독서': 67,
-            // 수학 (70~)
-            '대수': 71,
-            '미적분Ⅰ': 72,
-            '확률과 통계': 73,
-            '미적분Ⅱ': 74,
-            '기하': 75,
-            '경제수학': 76,
-            '인공지능 수학': 77,
-            // 영어 (81~)
-            '세계 문화와 영어': 82,
-            '영미 문학 읽기': 83,
-            '심화 영어': 84,
-            // 사회 (89~)
-            '한국지리 탐구': 90,
-            '세계시민과 지리': 91,
-            '도시의 미래 탐구': 92,
-            '여행지리': 93,
-            '세계사': 94,
-            '동아시아 역사 기행': 95,
-            '역사로 탐구하는 현대 세계': 96,
-            '경제': 97,
-            '정치': 98,
-            '법과 사회': 99,
-            '사회와 문화': 100,
-            '현대사회와 윤리': 101,
-            '고전과 윤리': 102,
-            '사회문제 탐구': 103,
-            '기후변화와 지속가능한 세계': 104,
-            // 과학 (108~)
-            '물리학': 109,
-            '화학': 110,
-            '생명과학': 111,
-            '지구과학': 112,
-            '역학과 에너지': 113,
-            '전자기와 양자': 114,
-            '화학 반응의 세계': 115,
-            '물질과 에너지': 116,
-            '세포와 물질대사': 117,
-            '생물의 유전과 진화': 118,
-            '행성 우주 과학': 119,
-            '지구시스템과학': 120,
-            '융합과학 탐구': 121,
-            // 기타 (교양, 체육, 예술 등 124~)
-            '철학': 125,
-            '심리학': 126,
-            '교육학': 127,
-            '미술': 130,
-            '음악': 132,
-            '체육': 134,
-            '스포츠 생활': 135,
-            // 정보 (147~)
-            '인공지능 기초': 148,
-            '데이터 과학': 149
+            '문학과 영상': 65, '매체 의사소통': 66, '주제 탐구 독서': 67,
+            '대수': 71, '미적분Ⅰ': 72, '확률과 통계': 73, '미적분Ⅱ': 74, '기하': 75, '경제수학': 76, '인공지능 수학': 77,
+            '세계 문화와 영어': 82, '영미 문학 읽기': 83, '심화 영어': 84,
+            '한국지리 탐구': 90, '세계시민과 지리': 91, '도시의 미래 탐구': 92, '여행지리': 93, '세계사': 94, '동아시아 역사 기행': 95, '역사로 탐구하는 현대 세계': 96, '경제': 97, '정치': 98, '법과 사회': 99, '사회와 문화': 100, '현대사회와 윤리': 101, '고전과 윤리': 102, '사회문제 탐구': 103, '기후변화와 지속가능한 세계': 104,
+            '물리학': 109, '화학': 110, '생명과학': 111, '지구과학': 112, '역학과 에너지': 113, '전자기와 양자': 114, '화학 반응의 세계': 115, '물질과 에너지': 116, '세포와 물질대사': 117, '생물의 유전과 진화': 118, '행성 우주 과학': 119, '지구시스템과학': 120, '융합과학 탐구': 121,
+            '철학': 125, '심리학': 126, '교육학': 127, '미술': 130, '음악': 132, '체육': 134, '스포츠 생활': 135,
+            '인공지능 기초': 148, '데이터 과학': 149
         };
         
         let currentModalSubject = null;
 
-        // Initialize App
         document.addEventListener('DOMContentLoaded', () => {
             renderFields();
         });
 
-        // 1. Render Fields (계열)
         function renderFields() {
             const container = document.getElementById('field-container');
             container.innerHTML = '';
@@ -594,7 +548,6 @@
             });
         }
 
-        // 2. Select Field -> Render Majors
         function selectField(fieldId) {
             selectedField = fieldId;
             selectedMajor = null;
@@ -615,16 +568,13 @@
                 container.appendChild(btn);
             });
 
-            // Hide results when switching fields
             document.getElementById('result-placeholder').classList.remove('hidden');
             document.getElementById('result-content').classList.add('hidden');
         }
 
-        // 3. Select Major -> Render Subjects
         function selectMajor(fieldId, majorIndex, btnElement) {
             selectedMajor = curriculumData[fieldId].majors[majorIndex];
             
-            // Update Major buttons style
             const container = document.getElementById('major-container');
             Array.from(container.children).forEach(child => {
                 child.className = 'w-full text-left p-3 rounded-lg border transition-all bg-gray-50 border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-700';
@@ -633,15 +583,12 @@
             btnElement.className = 'w-full text-left p-3 rounded-lg border transition-all bg-blue-600 text-white border-blue-600 shadow-md';
             btnElement.querySelector('i').className = 'fas fa-angle-right mr-2 text-white';
 
-            // Show results
             document.getElementById('result-placeholder').classList.add('hidden');
             document.getElementById('result-content').classList.remove('hidden');
 
-            // Populate data
             document.getElementById('result-title').textContent = selectedMajor.name;
             document.getElementById('result-desc').textContent = selectedMajor.desc;
 
-            // Render core
             const coreContainer = document.getElementById('core-subjects');
             coreContainer.innerHTML = '';
             if(selectedMajor.core.length === 0) {
@@ -652,7 +599,6 @@
                 });
             }
 
-            // Render recommended
             const recContainer = document.getElementById('recommended-subjects');
             recContainer.innerHTML = '';
             selectedMajor.recommended.forEach(subject => {
@@ -660,7 +606,6 @@
             });
         }
 
-        // 4. Create Subject Badge (Split Button Update)
         function createSubjectBadge(subject, type) {
             const wrapper = document.createElement('div');
             const isSelected = cart.has(subject);
@@ -679,10 +624,8 @@
             else if (category === '융합') catColor = isSelected ? 'bg-white/25 text-white' : 'bg-teal-100 text-teal-700';
             else catColor = isSelected ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700';
 
-            // Wrapper styles for Split Button
             wrapper.className = `subject-tag inline-flex items-stretch rounded-full border shadow-sm ${colorClasses}`;
             
-            // Left Button: Show Details Modal
             const detailBtn = document.createElement('button');
             detailBtn.className = `flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-l-full focus:outline-none hover:bg-black/5 transition-colors cursor-pointer`;
             detailBtn.title = "과목 안내 자세히 보기";
@@ -692,14 +635,12 @@
             `;
             detailBtn.onclick = () => showSubjectDetails(subject, category, isSelected);
 
-            // Right Button: Add/Remove Cart
             const cartBtn = document.createElement('button');
             cartBtn.className = `px-3 py-1.5 border-l border-current/20 rounded-r-full focus:outline-none hover:bg-black/10 transition-colors flex items-center justify-center cursor-pointer`;
             cartBtn.title = isSelected ? "바구니에서 빼기" : "바구니에 담기";
             cartBtn.innerHTML = isSelected ? '<i class="fas fa-check"></i>' : '<i class="fas fa-plus opacity-70"></i>';
             cartBtn.onclick = () => {
                 toggleCart(subject);
-                // Re-render major view to update badge colors immediately
                 if(selectedMajor && selectedField) {
                     const currentMajorIndex = curriculumData[selectedField].majors.findIndex(m => m.name === selectedMajor.name);
                     const activeBtn = Array.from(document.getElementById('major-container').children)[currentMajorIndex];
@@ -712,7 +653,54 @@
             return wrapper;
         }
 
-        // Modal Functions
+        async function renderPDFPage(pageNum) {
+            const loadingEl = document.getElementById('pdf-loading');
+            const canvas = document.getElementById('pdf-canvas');
+            const container = document.getElementById('pdf-container');
+            const ctx = canvas.getContext('2d');
+
+            loadingEl.classList.remove('hidden');
+            canvas.classList.add('hidden');
+
+            try {
+                // PDF가 아직 로드되지 않았다면 로드 (최초 1회만 실행됨)
+                if (!pdfDoc) {
+                    // 동일 경로(GitHub 폴더)에 있는 PDF 파일 호출
+                    pdfDoc = await pdfjsLib.getDocument('교과별 과목 안내.pdf').promise;
+                }
+                
+                const page = await pdfDoc.getPage(pageNum);
+                
+                // 컨테이너 크기에 맞춰 스케일 계산 (스마트폰 등 작은 화면 대응)
+                let containerWidth = container.clientWidth;
+                if (containerWidth === 0) containerWidth = window.innerWidth * 0.9; // 모달이 렌더링 전일 경우 대비
+
+                const unscaledViewport = page.getViewport({ scale: 1.0 });
+                const scale = containerWidth / unscaledViewport.width;
+                
+                // 해상도를 위해 고품질 렌더링(scale * 1.5배) 진행하고, CSS로 화면에 맞게 축소 표시
+                const viewport = page.getViewport({ scale: scale * 1.5 });
+                
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                
+                loadingEl.classList.add('hidden');
+                canvas.classList.remove('hidden');
+                container.scrollTop = 0; // 새 페이지 렌더링 시 최상단으로 스크롤 초기화
+                
+            } catch (error) {
+                console.error('PDF 렌더링 중 오류 발생:', error);
+                loadingEl.innerHTML = '<i class="fas fa-exclamation-triangle text-3xl mb-2 text-red-500"></i><p>PDF를 불러올 수 없습니다. 원본 열기를 이용해주세요.</p>';
+            }
+        }
+
         function showSubjectDetails(subject, category, isSelected) {
             currentModalSubject = subject;
             const modal = document.getElementById('subject-modal');
@@ -720,21 +708,16 @@
             const title = document.getElementById('modal-title');
             const catBadge = document.getElementById('modal-category');
             const cartBtn = document.getElementById('modal-cart-btn');
-            
-            // PDF Viewer Elements
-            const pdfViewer = document.getElementById('modal-pdf-viewer');
             const fallbackLink = document.getElementById('pdf-fallback-link');
 
             title.textContent = subject;
             
-            // Set PDF Source (해당 과목의 페이지 번호 매핑 적용)
+            // 페이지 번호 매핑 적용 후 PDF.js 캔버스 렌더링 호출
             const pageNum = subjectPageMap[subject] || 1; 
-            const pdfUrl = `교과별 과목 안내.pdf#page=${pageNum}`;
+            renderPDFPage(pageNum);
             
-            pdfViewer.src = pdfUrl;
-            fallbackLink.href = pdfUrl;
+            fallbackLink.href = `교과별 과목 안내.pdf#page=${pageNum}`;
             
-            // Set Badge
             catBadge.textContent = category + (category === '교양' ? '' : '선택');
             if (category === '일반') catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-gray-200 text-gray-700';
             else if (category === '진로') catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-indigo-100 text-indigo-700';
@@ -746,7 +729,6 @@
             cartBtn.onclick = () => {
                 toggleCart(subject);
                 updateModalCartBtn();
-                // Update background view
                 if(selectedMajor && selectedField) {
                     const currentMajorIndex = curriculumData[selectedField].majors.findIndex(m => m.name === selectedMajor.name);
                     const activeBtn = Array.from(document.getElementById('major-container').children)[currentMajorIndex];
@@ -754,10 +736,8 @@
                 }
             };
 
-            // Show animation
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-            // Allow display block to apply before animating opacity/scale
             setTimeout(() => {
                 content.classList.remove('scale-95', 'opacity-0');
                 content.classList.add('scale-100', 'opacity-100');
@@ -789,10 +769,12 @@
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
                 currentModalSubject = null;
+                // 모달 닫을 때 캔버스 초기화하여 잔상 제거
+                const canvas = document.getElementById('pdf-canvas');
+                canvas.classList.add('hidden');
             }, 200);
         }
 
-        // 5. Cart Management
         function toggleCart(subject) {
             if (cart.has(subject)) {
                 cart.delete(subject);
@@ -805,7 +787,6 @@
         function clearCart() {
             cart.clear();
             updateCartUI();
-            // Re-render current view to clear checkmarks
             if(selectedMajor && selectedField) {
                 const currentMajorIndex = curriculumData[selectedField].majors.findIndex(m => m.name === selectedMajor.name);
                 const activeBtn = Array.from(document.getElementById('major-container').children)[currentMajorIndex];
@@ -853,7 +834,6 @@
             });
         }
 
-        // 6. Copy Cart Feature
         function copyCart() {
             if (cart.size === 0) return;
             
@@ -864,11 +844,9 @@
             
             const textToCopy = `[나의 선택 과목 바구니]\n${cartItemsWithCategory.join(', ')}`;
             
-            // Clipboard API
             if (navigator.clipboard && window.isSecureContext) {
                 navigator.clipboard.writeText(textToCopy).then(showToast);
             } else {
-                // Fallback
                 let textArea = document.createElement("textarea");
                 textArea.value = textToCopy;
                 textArea.style.position = "fixed";
@@ -880,9 +858,7 @@
                 try {
                     document.execCommand('copy');
                     showToast();
-                } catch (err) {
-                    console.error('Fallback: Oops, unable to copy', err);
-                }
+                } catch (err) {}
                 document.body.removeChild(textArea);
             }
         }
