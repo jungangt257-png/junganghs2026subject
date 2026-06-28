@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2022 개정 교육과정 선택과목 가이드</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .subject-tag {
+            transition: all 0.2s ease-in-out;
+        }
+        .subject-tag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .subject-tag.selected {
+            ring: 2px;
+            ring-offset: 2px;
+            ring-blue-500;
+        }
+        /* Hide scrollbar for clean horizontal scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-32">
+
+    <!-- Header -->
+    <header class="bg-blue-800 text-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                        <i class="fas fa-book-open"></i> 2022 개정 교육과정 선택과목 가이드
+                    </h1>
+                    <p class="mt-2 text-blue-200 text-sm md:text-base">주요 대학 권장과목 가이드라인을 바탕으로 내 전공에 맞는 과목을 설계해보세요.</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Notification -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-8 rounded-r-lg shadow-sm">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-500"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-800">
+                        본 자료는 주요 대학(서울대 등)의 전공 연계 교과이수 권장과목을 <strong>2022 개정 교육과정 과목명(2025년 고1부터 적용)</strong>으로 재해석한 참고용 가이드입니다. 각 대학의 최종 모집요강을 반드시 확인하세요.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Selection -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Step 1: 계열 선택 -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span> 계열 선택
+                    </h2>
+                    <div class="grid grid-cols-2 gap-3" id="field-container">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Step 2: 전공/학과 선택 -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 opacity-50 pointer-events-none transition-opacity duration-300" id="major-section">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span class="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span> 희망 학과 선택
+                    </h2>
+                    <div class="space-y-2" id="major-container">
+                        <p class="text-gray-400 text-sm text-center py-4">계열을 먼저 선택해주세요.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Step 3: 과목 안내 -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-gray-100 min-h-[400px] flex flex-col" id="result-section">
+                    <div id="result-placeholder" class="flex-grow flex flex-col items-center justify-center text-gray-400">
+                        <i class="fas fa-layer-group text-6xl mb-4 opacity-30"></i>
+                        <p class="text-lg">희망 학과를 선택하면 권장 과목이 표시됩니다.</p>
+                    </div>
+
+                    <div id="result-content" class="hidden">
+                        <div class="border-b pb-4 mb-6">
+                            <h2 class="text-2xl font-bold text-gray-900" id="result-title">학과 이름</h2>
+                            <p class="text-gray-600 mt-2 text-sm md:text-base" id="result-desc">학과 설명</p>
+                        </div>
+
+                        <!-- 과목 구분 범례 추가 -->
+                        <div class="flex flex-wrap gap-3 mb-6 text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                            <span class="flex items-center gap-1"><span class="px-1.5 py-0.5 rounded font-bold bg-gray-200 text-gray-700">일반</span> 일반선택</span>
+                            <span class="flex items-center gap-1"><span class="px-1.5 py-0.5 rounded font-bold bg-indigo-100 text-indigo-700">진로</span> 진로선택</span>
+                            <span class="flex items-center gap-1"><span class="px-1.5 py-0.5 rounded font-bold bg-teal-100 text-teal-700">융합</span> 융합선택</span>
+                            <span class="flex items-center gap-1"><span class="px-1.5 py-0.5 rounded font-bold bg-orange-100 text-orange-700">교양</span> 교양</span>
+                        </div>
+
+                        <!-- 핵심 권장과목 -->
+                        <div class="mb-8">
+                            <h3 class="text-lg font-bold text-red-600 mb-3 flex items-center gap-2">
+                                <i class="fas fa-star"></i> 핵심 권장과목
+                                <span class="text-xs font-normal text-gray-500 ml-2">해당 전공 수학을 위해 필수로 권장되는 과목</span>
+                            </h3>
+                            <div class="flex flex-wrap gap-2" id="core-subjects">
+                                <!-- JS -->
+                            </div>
+                        </div>
+
+                        <!-- 권장과목 -->
+                        <div>
+                            <h3 class="text-lg font-bold text-blue-600 mb-3 flex items-center gap-2">
+                                <i class="fas fa-check-circle"></i> 권장과목
+                                <span class="text-xs font-normal text-gray-500 ml-2">전공 수학에 도움을 줄 수 있는 과목</span>
+                            </h3>
+                            <div class="flex flex-wrap gap-2" id="recommended-subjects">
+                                <!-- JS -->
+                            </div>
+                        </div>
+                        
+                        <p class="text-xs text-gray-400 mt-8 text-right">* 과목을 클릭하여 아래 바구니에 담아보세요.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Cart Bar -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 transform transition-transform duration-300 translate-y-full" id="cart-bar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex-grow w-full overflow-hidden">
+                    <h4 class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                        <i class="fas fa-shopping-basket text-orange-500"></i> 나의 선택 과목 바구니 
+                        <span class="bg-orange-100 text-orange-700 text-xs py-0.5 px-2 rounded-full" id="cart-count">0과목</span>
+                    </h4>
+                    <div class="flex overflow-x-auto gap-2 pb-2 no-scrollbar" id="cart-items">
+                        <p class="text-gray-400 text-sm">담은 과목이 없습니다.</p>
+                    </div>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto shrink-0">
+                    <button onclick="copyCart()" class="w-full md:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-copy"></i> 복사하기
+                    </button>
+                    <button onclick="clearCart()" class="w-full md:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-trash"></i> 비우기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Subject Detail Modal -->
+    <div id="subject-modal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden transform transition-all scale-95 opacity-0" id="subject-modal-content">
+            <!-- Header -->
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 shrink-0">
+                <div>
+                    <span id="modal-category" class="text-xs px-2 py-1 rounded font-bold mr-2 inline-block">분류</span>
+                    <h3 id="modal-title" class="text-xl font-bold text-gray-900 inline-block">과목명</h3>
+                </div>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Mobile Fallback Notice -->
+            <div class="bg-blue-50 py-2 px-4 text-center text-xs text-blue-800 border-b shrink-0 flex justify-between items-center">
+                <span>미리보기가 지원되지 않는 기기라면 새 창에서 확인하세요.</span>
+                <a id="pdf-fallback-link" href="교과별 과목 안내.pdf" target="_blank" class="px-3 py-1 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition-colors">원본 PDF 열기</a>
+            </div>
+
+            <!-- Body: PDF Viewer -->
+            <div class="flex-grow bg-gray-200 relative w-full h-full">
+                <!-- PDF iframe embed -->
+                <iframe id="modal-pdf-viewer" class="w-full h-full absolute inset-0" src="" frameborder="0"></iframe>
+            </div>
+
+            <!-- Footer: Cart Actions -->
+            <div class="p-4 border-t flex gap-3 bg-white shrink-0">
+                <button onclick="closeModal()" class="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg transition-colors">닫기</button>
+                <button id="modal-cart-btn" class="flex-1 px-4 py-3 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-plus"></i> 바구니에 담기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-y-[-20px] pointer-events-none z-50">
+        복사되었습니다.
+    </div>
+
+    <script>
+        // Data structure mapped to 2022 Revised Curriculum
+        const curriculumData = {
+            humanities: {
+                id: 'humanities',
+                name: '인문/어문',
+                icon: 'fa-pen-nib',
+                color: 'bg-rose-100 text-rose-700 border-rose-200',
+                majors: [
+                    {
+                        name: '국어국문/언어학과',
+                        core: ['문학과 영상', '매체 의사소통'],
+                        recommended: ['주제 탐구 독서', '현대사회와 윤리', '사회와 문화', '철학'],
+                        desc: '언어와 문학에 대한 깊은 이해를 위해 문학 및 윤리, 사회 관련 과목을 권장합니다.'
+                    },
+                    {
+                        name: '철학/사학과',
+                        core: ['세계사', '현대사회와 윤리'],
+                        recommended: ['한국지리 탐구', '동아시아 역사 기행', '고전과 윤리', '정치'],
+                        desc: '인류의 사상과 역사를 탐구하기 위해 역사 및 윤리 과목이 중요합니다.'
+                    },
+                    {
+                        name: '심리학과',
+                        core: ['사회와 문화', '생명과학'],
+                        recommended: ['확률과 통계', '현대사회와 윤리', '심리학'],
+                        desc: '인간 행동의 과학적 이해를 위해 사회과학 기초와 생물학적 기초, 통계 지식이 요구됩니다.'
+                    },
+                    {
+                        name: '영어영문/어문학계열',
+                        core: ['세계 문화와 영어'],
+                        recommended: ['영미 문학 읽기', '심화 영어', '세계사', '동아시아 역사 기행'],
+                        desc: '해당 언어권의 문화와 역사적 배경을 이해하기 위해 역사 과목과 심화 어학 과목 이수를 권장합니다.'
+                    }
+                ]
+            },
+            social: {
+                id: 'social',
+                name: '사회/상경',
+                icon: 'fa-chart-pie',
+                color: 'bg-amber-100 text-amber-700 border-amber-200',
+                majors: [
+                    {
+                        name: '경영/경제학과',
+                        core: ['대수', '미적분Ⅰ', '확률과 통계', '경제'],
+                        recommended: ['미적분Ⅱ', '경제수학', '정치', '사회와 문화'],
+                        desc: '수리적 분석력이 필수적이므로 일반선택의 수학 과목들과 진로선택의 경제 과목 이수를 적극 권장합니다.'
+                    },
+                    {
+                        name: '정치외교/행정학과',
+                        core: ['정치', '법과 사회', '사회와 문화'],
+                        recommended: ['세계사', '확률과 통계', '역사로 탐구하는 현대 세계', '경제'],
+                        desc: '복잡한 사회 현상에 대한 이해와 분석을 위해 사회 탐구 진로과목과 통계적 소양이 필요합니다.'
+                    },
+                    {
+                        name: '미디어/커뮤니케이션학과',
+                        core: ['사회와 문화', '매체 의사소통'],
+                        recommended: ['정치', '확률과 통계', '현대사회와 윤리', '역사로 탐구하는 현대 세계'],
+                        desc: '사회 현상을 비판적으로 바라보기 위한 사회탐구 역량과 다양한 매체 이해력이 중요합니다.'
+                    },
+                    {
+                        name: '사회학과',
+                        core: ['사회와 문화'],
+                        recommended: ['확률과 통계', '법과 사회', '역사로 탐구하는 현대 세계', '사회문제 탐구'],
+                        desc: '사회 구조와 현상을 과학적으로 분석하기 위해 통계적 지식과 폭넓은 사회탐구 과목이 요구됩니다.'
+                    },
+                    {
+                        name: '지리학과',
+                        core: ['한국지리 탐구', '세계시민과 지리'],
+                        recommended: ['도시의 미래 탐구', '지구과학', '여행지리', '기후변화와 지속가능한 세계'],
+                        desc: '공간적 관점과 자연환경에 대한 이해를 위해 지리 진로선택 및 지구과학 연계 학습이 좋습니다.'
+                    }
+                ]
+            },
+            natural: {
+                id: 'natural',
+                name: '자연/과학',
+                icon: 'fa-leaf',
+                color: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+                majors: [
+                    {
+                        name: '수학/통계학과',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '기하'],
+                        recommended: ['확률과 통계', '경제수학', '인공지능 수학', '물리학'],
+                        desc: '수학적 사고력이 절대적이므로 수학 진로선택 과목(미적분Ⅱ, 기하 등)을 최대한 이수하는 것이 좋습니다.'
+                    },
+                    {
+                        name: '물리학과',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '기하', '물리학', '역학과 에너지', '전자기와 양자'],
+                        recommended: ['화학', '확률과 통계'],
+                        desc: '심화 수학과 물리 관련 진로선택(역학, 전자기)에 대한 깊은 이해가 필수적입니다.'
+                    },
+                    {
+                        name: '화학과',
+                        core: ['미적분Ⅰ', '화학', '물리학', '화학 반응의 세계'],
+                        recommended: ['미적분Ⅱ', '기하', '물질과 에너지'],
+                        desc: '화학 현상을 수학, 물리적으로 해석하는 기초가 필요합니다.'
+                    },
+                    {
+                        name: '생명과학과',
+                        core: ['생명과학', '화학', '세포와 물질대사', '생물의 유전과 진화'],
+                        recommended: ['미적분Ⅰ', '확률과 통계', '물리학'],
+                        desc: '생명 현상 탐구를 위해 생명과학 진로선택(세포와 물질대사 등) 및 화학 과목 이수가 매우 중요합니다.'
+                    },
+                    {
+                        name: '지구과학/천문학과',
+                        core: ['미적분Ⅰ', '물리학', '지구과학'],
+                        recommended: ['기하', '미적분Ⅱ', '행성 우주 과학', '지구시스템과학'],
+                        desc: '우주와 지구 현상을 물리·수학적으로 분석하므로 관련 기초 및 심화 탐구 과목이 필수입니다.'
+                    },
+                    {
+                        name: '식품영양학과',
+                        core: ['화학', '생명과학'],
+                        recommended: ['세포와 물질대사', '확률과 통계', '화학 반응의 세계'],
+                        desc: '식품의 성분과 인체 대사 과정을 이해하기 위해 화학과 생명과학의 유기적인 학습이 필요합니다.'
+                    }
+                ]
+            },
+            engineering: {
+                id: 'engineering',
+                name: '공학',
+                icon: 'fa-cogs',
+                color: 'bg-blue-100 text-blue-700 border-blue-200',
+                majors: [
+                    {
+                        name: '기계/항공우주공학과',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '기하', '물리학', '역학과 에너지'],
+                        recommended: ['화학', '전자기와 양자', '확률과 통계'],
+                        desc: '역학 기반의 학문이므로 수학과 물리학(특히 역학과 에너지)의 탄탄한 기초가 필요합니다.'
+                    },
+                    {
+                        name: '전기전자공학과',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '기하', '물리학', '전자기와 양자'],
+                        recommended: ['화학', '역학과 에너지', '인공지능 수학'],
+                        desc: '전자기학과 수학적 모델링이 핵심이므로 관련 물리, 수학 과목 이수가 필수입니다.'
+                    },
+                    {
+                        name: '컴퓨터/소프트웨어공학',
+                        core: ['미적분Ⅰ', '미적분Ⅱ'],
+                        recommended: ['기하', '확률과 통계', '인공지능 수학', '물리학', '인공지능 기초'],
+                        desc: '알고리즘과 논리적 사고력을 위해 심화 수학과 정보 및 인공지능 관련 과목 이수를 권장합니다.'
+                    },
+                    {
+                        name: '화학공학과/신소재공학',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '물리학', '화학', '물질과 에너지'],
+                        recommended: ['기하', '화학 반응의 세계', '생명과학', '역학과 에너지'],
+                        desc: '화학뿐만 아니라 물리와 수학적 기초(열역학 등)가 융합적으로 매우 중요합니다.'
+                    },
+                    {
+                        name: '건축/토목/환경공학과',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '기하', '물리학'],
+                        recommended: ['역학과 에너지', '지구과학', '미술', '도시의 미래 탐구'],
+                        desc: '구조 역학과 공간 설계 역량이 필요하므로 수학, 물리와 함께 공간 및 예술 관련 소양도 도움이 됩니다.'
+                    },
+                    {
+                        name: '산업공학과',
+                        core: ['미적분Ⅰ', '확률과 통계'],
+                        recommended: ['인공지능 수학', '데이터 과학', '미적분Ⅱ', '경제'],
+                        desc: '시스템 최적화와 데이터 분석이 주가 되므로, 통계와 프로그래밍, 경제적 마인드가 권장됩니다.'
+                    }
+                ]
+            },
+            medical: {
+                id: 'medical',
+                name: '의약/보건',
+                icon: 'fa-user-md',
+                color: 'bg-purple-100 text-purple-700 border-purple-200',
+                majors: [
+                    {
+                        name: '의예과/치의예과',
+                        core: ['생명과학', '화학'],
+                        recommended: ['미적분Ⅰ', '확률과 통계', '세포와 물질대사', '생물의 유전과 진화', '물리학'],
+                        desc: '인체 생명 현상을 이해하기 위한 생명과학, 화학 중심의 심도 있는 학습이 요구됩니다.'
+                    },
+                    {
+                        name: '약학과',
+                        core: ['화학', '생명과학'],
+                        recommended: ['미적분Ⅰ', '확률과 통계', '화학 반응의 세계', '물질과 에너지', '세포와 물질대사'],
+                        desc: '약물의 화학적 기전 이해를 위해 화학을 중심으로 생명과학을 병행 학습하는 것이 중요합니다.'
+                    },
+                    {
+                        name: '간호/보건학과',
+                        core: ['생명과학', '화학'],
+                        recommended: ['확률과 통계', '사회와 문화', '현대사회와 윤리', '심리학'],
+                        desc: '생물학적 기초 지식뿐만 아니라 사람에 대한 이해를 돕는 사회 및 윤리 과목이 도움을 줍니다.'
+                    },
+                    {
+                        name: '수의예과',
+                        core: ['생명과학', '화학'],
+                        recommended: ['세포와 물질대사', '생물의 유전과 진화', '미적분Ⅰ', '확률과 통계'],
+                        desc: '동물의 생명 현상과 질병을 다루기 위해 의예과와 유사하게 화학, 생명과학의 심화 지식이 필요합니다.'
+                    },
+                    {
+                        name: '재활/물리치료학과',
+                        core: ['생명과학'],
+                        recommended: ['화학', '물리학', '스포츠 생활', '심리학'],
+                        desc: '신체 운동과 재활 기전을 이해하기 위해 생명과학 기초에 물리학적, 스포츠 역학적 소양이 더해지면 좋습니다.'
+                    }
+                ]
+            },
+            education: {
+                id: 'education',
+                name: '사범/교육',
+                icon: 'fa-chalkboard-teacher',
+                color: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+                majors: [
+                    {
+                        name: '교육학과',
+                        core: ['사회와 문화', '현대사회와 윤리'],
+                        recommended: ['철학', '교육학', '심리학', '역사로 탐구하는 현대 세계'],
+                        desc: '인간과 사회에 대한 깊은 이해를 바탕으로 교육 현상을 탐구하기 위한 과목들이 필요합니다.'
+                    },
+                    {
+                        name: '초등교육과',
+                        core: ['확률과 통계', '사회와 문화', '생명과학'],
+                        recommended: ['교육학', '철학', '미술', '음악', '체육'],
+                        desc: '전 교과를 지도하는 초등교사의 특성상 인문, 사회, 자연과학부터 예술·체육까지 다방면의 균형 있는 과목 이수를 권장합니다.'
+                    },
+                    {
+                        name: '국어/영어교육과',
+                        core: ['문학과 영상', '매체 의사소통', '세계 문화와 영어'],
+                        recommended: ['영미 문학 읽기', '주제 탐구 독서', '교육학', '현대사회와 윤리'],
+                        desc: '해당 언어와 문학에 대한 깊은 이해를 위해 심화 어학/문학 과목과 교육학적 소양이 필요합니다.'
+                    },
+                    {
+                        name: '수학/과학교육과',
+                        core: ['미적분Ⅰ', '미적분Ⅱ', '기하', '물리학', '화학', '생명과학', '지구과학'],
+                        recommended: ['확률과 통계', '인공지능 수학', '교육학', '융합과학 탐구'],
+                        desc: '수학 및 과학에 대한 전문적인 지식이 필수적이므로 관련 심화(일반/진로/융합) 과목을 충실히 이수해야 합니다.'
+                    },
+                    {
+                        name: '사회/역사교육과',
+                        core: ['세계사', '한국지리 탐구', '사회와 문화', '정치', '법과 사회'],
+                        recommended: ['동아시아 역사 기행', '여행지리', '교육학', '사회문제 탐구'],
+                        desc: '사회 현상과 역사적 흐름을 폭넓게 이해하기 위해 다양한 사회 탐구 영역 이수를 권장합니다.'
+                    }
+                ]
+            }
+        };
+
+        let selectedField = null;
+        let selectedMajor = null;
+        let cart = new Set(); // Using Set to avoid duplicates
+
+        // 2022 개정 교육과정 과목별 구분 매핑 (완전 업데이트)
+        const subjectCategoryMap = {
+            '문학과 영상': '진로',
+            '매체 의사소통': '융합',
+            '주제 탐구 독서': '진로',
+            '현대사회와 윤리': '일반',
+            '사회와 문화': '일반',
+            '철학': '교양',
+            '세계사': '일반',
+            '한국지리 탐구': '진로',
+            '동아시아 역사 기행': '진로',
+            '정치': '진로',
+            '법과 사회': '진로',
+            '경제': '진로', // 2022개정에서 진로선택으로 변경됨
+            '생명과학': '일반',
+            '확률과 통계': '일반',
+            '심리학': '교양',
+            '대수': '일반',
+            '미적분Ⅰ': '일반',
+            '미적분Ⅱ': '진로',
+            '경제수학': '진로',
+            '역사로 탐구하는 현대 세계': '융합',
+            '기하': '진로',
+            '인공지능 수학': '진로',
+            '물리학': '일반',
+            '역학과 에너지': '진로',
+            '전자기와 양자': '진로',
+            '화학': '일반',
+            '화학 반응의 세계': '진로',
+            '물질과 에너지': '진로',
+            '세포와 물질대사': '진로',
+            '생물의 유전과 진화': '진로',
+            '인공지능 기초': '진로',
+            '데이터 과학': '진로',
+            '교육학': '교양',
+            '세계 문화와 영어': '융합',
+            '영미 문학 읽기': '진로',
+            '심화 영어': '진로',
+            '사회문제 탐구': '융합',
+            '세계시민과 지리': '일반',
+            '도시의 미래 탐구': '진로',
+            '여행지리': '융합',
+            '지구과학': '일반',
+            '행성 우주 과학': '진로',
+            '지구시스템과학': '진로',
+            '미술': '일반',
+            '음악': '일반',
+            '체육': '일반',
+            '융합과학 탐구': '융합',
+            '기후변화와 지속가능한 세계': '융합',
+            '스포츠 생활': '일반',
+            '고전과 윤리': '진로'
+        };
+
+        // 2022 개정 교육과정 교과별 과목 안내 PDF 페이지 매핑
+        // 💡 주의: PDF 목차를 기준으로 예상 페이지를 매핑했습니다. 실제 PDF를 열어보시고 페이지 번호(숫자)가 다르면 아래 숫자만 수정해 주시면 완벽하게 작동합니다.
+        const subjectPageMap = {
+            // 국어 (62~)
+            '문학과 영상': 65,
+            '매체 의사소통': 66,
+            '주제 탐구 독서': 67,
+            // 수학 (70~)
+            '대수': 71,
+            '미적분Ⅰ': 72,
+            '확률과 통계': 73,
+            '미적분Ⅱ': 74,
+            '기하': 75,
+            '경제수학': 76,
+            '인공지능 수학': 77,
+            // 영어 (81~)
+            '세계 문화와 영어': 82,
+            '영미 문학 읽기': 83,
+            '심화 영어': 84,
+            // 사회 (89~)
+            '한국지리 탐구': 90,
+            '세계시민과 지리': 91,
+            '도시의 미래 탐구': 92,
+            '여행지리': 93,
+            '세계사': 94,
+            '동아시아 역사 기행': 95,
+            '역사로 탐구하는 현대 세계': 96,
+            '경제': 97,
+            '정치': 98,
+            '법과 사회': 99,
+            '사회와 문화': 100,
+            '현대사회와 윤리': 101,
+            '고전과 윤리': 102,
+            '사회문제 탐구': 103,
+            '기후변화와 지속가능한 세계': 104,
+            // 과학 (108~)
+            '물리학': 109,
+            '화학': 110,
+            '생명과학': 111,
+            '지구과학': 112,
+            '역학과 에너지': 113,
+            '전자기와 양자': 114,
+            '화학 반응의 세계': 115,
+            '물질과 에너지': 116,
+            '세포와 물질대사': 117,
+            '생물의 유전과 진화': 118,
+            '행성 우주 과학': 119,
+            '지구시스템과학': 120,
+            '융합과학 탐구': 121,
+            // 기타 (교양, 체육, 예술 등 124~)
+            '철학': 125,
+            '심리학': 126,
+            '교육학': 127,
+            '미술': 130,
+            '음악': 132,
+            '체육': 134,
+            '스포츠 생활': 135,
+            // 정보 (147~)
+            '인공지능 기초': 148,
+            '데이터 과학': 149
+        };
+        
+        let currentModalSubject = null;
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            renderFields();
+        });
+
+        // 1. Render Fields (계열)
+        function renderFields() {
+            const container = document.getElementById('field-container');
+            container.innerHTML = '';
+
+            Object.values(curriculumData).forEach(field => {
+                const btn = document.createElement('button');
+                btn.className = `p-4 rounded-lg border-2 text-left transition-all hover:bg-gray-50 flex flex-col items-center justify-center gap-2 border-gray-200 ${field.id === selectedField ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200' : ''}`;
+                btn.innerHTML = `
+                    <i class="fas ${field.icon} text-2xl ${field.id === selectedField ? 'text-blue-600' : 'text-gray-400'}"></i>
+                    <span class="font-medium ${field.id === selectedField ? 'text-blue-700' : 'text-gray-600'}">${field.name}</span>
+                `;
+                btn.onclick = () => selectField(field.id);
+                container.appendChild(btn);
+            });
+        }
+
+        // 2. Select Field -> Render Majors
+        function selectField(fieldId) {
+            selectedField = fieldId;
+            selectedMajor = null;
+            renderFields();
+            
+            const majorSection = document.getElementById('major-section');
+            majorSection.classList.remove('opacity-50', 'pointer-events-none');
+            
+            const container = document.getElementById('major-container');
+            container.innerHTML = '';
+            
+            const majors = curriculumData[fieldId].majors;
+            majors.forEach((major, index) => {
+                const btn = document.createElement('button');
+                btn.className = `w-full text-left p-3 rounded-lg border transition-all ${major.name === selectedMajor?.name ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-gray-50 border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-700'}`;
+                btn.innerHTML = `<i class="fas fa-angle-right mr-2 ${major.name === selectedMajor?.name ? 'text-white' : 'text-gray-400'}"></i> ${major.name}`;
+                btn.onclick = () => selectMajor(fieldId, index, btn);
+                container.appendChild(btn);
+            });
+
+            // Hide results when switching fields
+            document.getElementById('result-placeholder').classList.remove('hidden');
+            document.getElementById('result-content').classList.add('hidden');
+        }
+
+        // 3. Select Major -> Render Subjects
+        function selectMajor(fieldId, majorIndex, btnElement) {
+            selectedMajor = curriculumData[fieldId].majors[majorIndex];
+            
+            // Update Major buttons style
+            const container = document.getElementById('major-container');
+            Array.from(container.children).forEach(child => {
+                child.className = 'w-full text-left p-3 rounded-lg border transition-all bg-gray-50 border-gray-200 hover:border-blue-300 hover:bg-blue-50 text-gray-700';
+                child.querySelector('i').className = 'fas fa-angle-right mr-2 text-gray-400';
+            });
+            btnElement.className = 'w-full text-left p-3 rounded-lg border transition-all bg-blue-600 text-white border-blue-600 shadow-md';
+            btnElement.querySelector('i').className = 'fas fa-angle-right mr-2 text-white';
+
+            // Show results
+            document.getElementById('result-placeholder').classList.add('hidden');
+            document.getElementById('result-content').classList.remove('hidden');
+
+            // Populate data
+            document.getElementById('result-title').textContent = selectedMajor.name;
+            document.getElementById('result-desc').textContent = selectedMajor.desc;
+
+            // Render core
+            const coreContainer = document.getElementById('core-subjects');
+            coreContainer.innerHTML = '';
+            if(selectedMajor.core.length === 0) {
+                coreContainer.innerHTML = '<span class="text-gray-500 text-sm">지정된 핵심 권장과목 없음 (다양한 과목 선택 권장)</span>';
+            } else {
+                selectedMajor.core.forEach(subject => {
+                    coreContainer.appendChild(createSubjectBadge(subject, 'core'));
+                });
+            }
+
+            // Render recommended
+            const recContainer = document.getElementById('recommended-subjects');
+            recContainer.innerHTML = '';
+            selectedMajor.recommended.forEach(subject => {
+                recContainer.appendChild(createSubjectBadge(subject, 'recommended'));
+            });
+        }
+
+        // 4. Create Subject Badge (Split Button Update)
+        function createSubjectBadge(subject, type) {
+            const wrapper = document.createElement('div');
+            const isSelected = cart.has(subject);
+            const category = subjectCategoryMap[subject] || '일반';
+            
+            let colorClasses = '';
+            if (type === 'core') {
+                colorClasses = isSelected ? 'bg-red-500 text-white border-red-600 shadow-md' : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100';
+            } else {
+                colorClasses = isSelected ? 'bg-blue-500 text-white border-blue-600 shadow-md' : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100';
+            }
+
+            let catColor = '';
+            if (category === '일반') catColor = isSelected ? 'bg-white/25 text-white' : 'bg-gray-200 text-gray-700';
+            else if (category === '진로') catColor = isSelected ? 'bg-white/25 text-white' : 'bg-indigo-100 text-indigo-700';
+            else if (category === '융합') catColor = isSelected ? 'bg-white/25 text-white' : 'bg-teal-100 text-teal-700';
+            else catColor = isSelected ? 'bg-white/25 text-white' : 'bg-orange-100 text-orange-700';
+
+            // Wrapper styles for Split Button
+            wrapper.className = `subject-tag inline-flex items-stretch rounded-full border shadow-sm ${colorClasses}`;
+            
+            // Left Button: Show Details Modal
+            const detailBtn = document.createElement('button');
+            detailBtn.className = `flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-l-full focus:outline-none hover:bg-black/5 transition-colors cursor-pointer`;
+            detailBtn.title = "과목 안내 자세히 보기";
+            detailBtn.innerHTML = `
+                <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${catColor}">${category}</span>
+                <span>${subject}</span>
+            `;
+            detailBtn.onclick = () => showSubjectDetails(subject, category, isSelected);
+
+            // Right Button: Add/Remove Cart
+            const cartBtn = document.createElement('button');
+            cartBtn.className = `px-3 py-1.5 border-l border-current/20 rounded-r-full focus:outline-none hover:bg-black/10 transition-colors flex items-center justify-center cursor-pointer`;
+            cartBtn.title = isSelected ? "바구니에서 빼기" : "바구니에 담기";
+            cartBtn.innerHTML = isSelected ? '<i class="fas fa-check"></i>' : '<i class="fas fa-plus opacity-70"></i>';
+            cartBtn.onclick = () => {
+                toggleCart(subject);
+                // Re-render major view to update badge colors immediately
+                if(selectedMajor && selectedField) {
+                    const currentMajorIndex = curriculumData[selectedField].majors.findIndex(m => m.name === selectedMajor.name);
+                    const activeBtn = Array.from(document.getElementById('major-container').children)[currentMajorIndex];
+                    selectMajor(selectedField, currentMajorIndex, activeBtn);
+                }
+            };
+
+            wrapper.appendChild(detailBtn);
+            wrapper.appendChild(cartBtn);
+            return wrapper;
+        }
+
+        // Modal Functions
+        function showSubjectDetails(subject, category, isSelected) {
+            currentModalSubject = subject;
+            const modal = document.getElementById('subject-modal');
+            const content = document.getElementById('subject-modal-content');
+            const title = document.getElementById('modal-title');
+            const catBadge = document.getElementById('modal-category');
+            const cartBtn = document.getElementById('modal-cart-btn');
+            
+            // PDF Viewer Elements
+            const pdfViewer = document.getElementById('modal-pdf-viewer');
+            const fallbackLink = document.getElementById('pdf-fallback-link');
+
+            title.textContent = subject;
+            
+            // Set PDF Source (해당 과목의 페이지 번호 매핑 적용)
+            const pageNum = subjectPageMap[subject] || 1; 
+            const pdfUrl = `교과별 과목 안내.pdf#page=${pageNum}`;
+            
+            pdfViewer.src = pdfUrl;
+            fallbackLink.href = pdfUrl;
+            
+            // Set Badge
+            catBadge.textContent = category + (category === '교양' ? '' : '선택');
+            if (category === '일반') catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-gray-200 text-gray-700';
+            else if (category === '진로') catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-indigo-100 text-indigo-700';
+            else if (category === '융합') catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-teal-100 text-teal-700';
+            else catBadge.className = 'text-xs px-2 py-1 rounded font-bold mr-2 inline-block bg-orange-100 text-orange-700';
+
+            updateModalCartBtn();
+
+            cartBtn.onclick = () => {
+                toggleCart(subject);
+                updateModalCartBtn();
+                // Update background view
+                if(selectedMajor && selectedField) {
+                    const currentMajorIndex = curriculumData[selectedField].majors.findIndex(m => m.name === selectedMajor.name);
+                    const activeBtn = Array.from(document.getElementById('major-container').children)[currentMajorIndex];
+                    selectMajor(selectedField, currentMajorIndex, activeBtn);
+                }
+            };
+
+            // Show animation
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            // Allow display block to apply before animating opacity/scale
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function updateModalCartBtn() {
+            const btn = document.getElementById('modal-cart-btn');
+            if(!currentModalSubject) return;
+            const isSelected = cart.has(currentModalSubject);
+            
+            if(isSelected) {
+                btn.className = 'flex-1 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 border border-red-200';
+                btn.innerHTML = '<i class="fas fa-trash"></i> 바구니에서 빼기';
+            } else {
+                btn.className = 'flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2';
+                btn.innerHTML = '<i class="fas fa-plus"></i> 바구니에 담기';
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('subject-modal');
+            const content = document.getElementById('subject-modal-content');
+            
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                currentModalSubject = null;
+            }, 200);
+        }
+
+        // 5. Cart Management
+        function toggleCart(subject) {
+            if (cart.has(subject)) {
+                cart.delete(subject);
+            } else {
+                cart.add(subject);
+            }
+            updateCartUI();
+        }
+
+        function clearCart() {
+            cart.clear();
+            updateCartUI();
+            // Re-render current view to clear checkmarks
+            if(selectedMajor && selectedField) {
+                const currentMajorIndex = curriculumData[selectedField].majors.findIndex(m => m.name === selectedMajor.name);
+                const activeBtn = Array.from(document.getElementById('major-container').children)[currentMajorIndex];
+                selectMajor(selectedField, currentMajorIndex, activeBtn);
+            }
+        }
+
+        function updateCartUI() {
+            const bar = document.getElementById('cart-bar');
+            const itemsContainer = document.getElementById('cart-items');
+            const count = document.getElementById('cart-count');
+
+            if (cart.size > 0) {
+                bar.classList.remove('translate-y-full');
+            } else {
+                bar.classList.add('translate-y-full');
+            }
+
+            count.textContent = `${cart.size}과목`;
+            itemsContainer.innerHTML = '';
+
+            if (cart.size === 0) {
+                itemsContainer.innerHTML = '<p class="text-gray-400 text-sm">담은 과목이 없습니다.</p>';
+                return;
+            }
+
+            cart.forEach(subject => {
+                const category = subjectCategoryMap[subject] || '일반';
+                let catColor = '';
+                if (category === '일반') catColor = 'bg-gray-200 text-gray-700';
+                else if (category === '진로') catColor = 'bg-indigo-100 text-indigo-700';
+                else if (category === '융합') catColor = 'bg-teal-100 text-teal-700';
+                else catColor = 'bg-orange-100 text-orange-700';
+
+                const tag = document.createElement('div');
+                tag.className = 'flex items-center gap-1.5 bg-white border border-gray-300 text-gray-700 px-2 py-1.5 rounded-md text-sm whitespace-nowrap shadow-sm';
+                tag.innerHTML = `
+                    <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${catColor}">${category}</span>
+                    <span>${subject}</span>
+                    <button onclick="toggleCart('${subject}'); event.stopPropagation();" class="ml-1 text-gray-400 hover:text-red-500 focus:outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                itemsContainer.appendChild(tag);
+            });
+        }
+
+        // 6. Copy Cart Feature
+        function copyCart() {
+            if (cart.size === 0) return;
+            
+            const cartItemsWithCategory = Array.from(cart).map(subject => {
+                const category = subjectCategoryMap[subject] || '일반';
+                return `[${category}] ${subject}`;
+            });
+            
+            const textToCopy = `[나의 선택 과목 바구니]\n${cartItemsWithCategory.join(', ')}`;
+            
+            // Clipboard API
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(showToast);
+            } else {
+                // Fallback
+                let textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                textArea.style.top = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast();
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('opacity-0', 'translate-y-[-20px]');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-[-20px]');
+            }, 2500);
+        }
+
+    </script>
+</body>
+</html>
